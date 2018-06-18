@@ -1,7 +1,7 @@
 let accessToken;
 let expTime;
 const clientID = '7b4180d7c2ce4d06a758d3dcfd3ec083';
-const redirectURI = 'http://localhost:3000';
+const redirectURI = 'http://localhost:3000/';
 const spotifyAuthorizeURL = 'https://accounts.spotify.com/authorize?client_id='
 const usersURL = 'https://api.spotify.com/v1/users/';
 
@@ -10,18 +10,21 @@ const Spotify = {
   getAccessToken() {
     if (accessToken) {
       return accessToken;
-    } else {
-      const retrAccess = window.location.href.match('/access_token=([^&]*)/');
-      const retrExpir = window.location.href.match('/expires_in=([^&]*)/');
+    }
+    let retrAccess = window.location.href.match(/access_token=([^&]*)/);
+    let retrExpir = window.location.href.match(/expires_in=([^&]*)/);
+    if (retrAccess && retrExpir) {
       accessToken = retrAccess[1];
       expTime = parseInt(retrExpir[1], 10);
       window.setTimeout(() => accessToken = '', expTime * 1000);
       window.history.pushState('Access Token', null, '/');
-      window.location(`${spotifyAuthorizeURL}${clientID}&response_type=token&scope=playlist-modify-public&redirect_uri=${redirectURI}`);
+    } else {
+      window.location = `${spotifyAuthorizeURL}${clientID}&response_type=token&scope=playlist-modify-public&redirect_uri=${redirectURI}`;
     }
   },
 
   search(searchTerm) {
+    Spotify.getAccessToken();
     return fetch(`https://api.spotify.com/v1/search?type=track&q=${searchTerm}`, {
         headers:{Authorization: `Bearer ${accessToken}`}
       }).then(response => {
@@ -48,25 +51,29 @@ const Spotify = {
   },
 
   savePlaylist(playlistName, trackURIs) {
+    Spotify.getAccessToken();
     if (!playlistName || !trackURIs) {
       return;
     }
-    const accTok = accessToken;
-    const headers = { Authorization: `Bearer ${accTok}` };
+    const headers = { Authorization: `Bearer ${accessToken}` };
 
     let userID = fetch('https://api.spotify.com/v1/me', {
       headers: headers
     }).then(response => {
       try {
         if (response.ok) {
+          console.log(response);
           const jsonResponse = response.json();
+          console.log(jsonResponse);
           return jsonResponse;
         }
         throw new Error('Request failed getting userID!');
       } catch (error) {
         console.log(error);
       }
-    }).then(jsonResponse => jsonResponse[0].id);
+    }).then(jsonResponse => {
+      return jsonResponse.id;
+    });
 
     console.log(userID);
 
@@ -83,7 +90,7 @@ const Spotify = {
         console.log(error);
     }}).then(jsonResponse => jsonResponse[0].id);
 
-    fetch(`https://api.spotify.com/v1/users/${userID}/playlists/${playlistID}/tracks`, {
+    fetch(`${usersURL}${userID}/playlists/${playlistID}/tracks`, {
         headers: headers
     }).then(response => {
       try {
