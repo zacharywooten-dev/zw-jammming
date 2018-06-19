@@ -7,13 +7,15 @@ class TrackList extends Component {
   render() {
     return (
       <div className='TrackList'>
-        {this.props.tracks.map(track =>
-          <Track
-            track={track}
-            key={track.id}
-            isRemoval={this.props.isRemoval}
-            onAdd={this.props.onAdd}
-            onRemove={this.props.onRemove}/>)};
+        {
+          this.props.tracks.length > 0 ? this.props.tracks.map(track => {
+            return <Track
+              track={track}
+              key={track.id}
+              isRemoval={this.props.isRemoval}
+              onAdd={this.props.onAdd}
+              onRemove={this.props.onRemove} />}) : console.log('Empty List')
+        }
       </div>
     );
   }

@@ -13,19 +13,9 @@ class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      'searchResults': [{name: 'Tiny Dancer', artist: 'Elton John',
-        album: 'Madman Across The Water', id: 0}, {name: 'Tiny Dancer',
-        artist: 'Tim McGraw', album: 'Love Story', id: 1}, {name: 'Tiny Dancer',
-        artist: 'Rockabye Baby!', album: 'Lullaby Renditions of Elton John',
-        id: 2}, {name: 'Tiny Dancer', artist: 'The White Raven',
-        album: 'Tiny Dancer', id: 3}, {name: 'Tiny Dancer - Live Album Version',
-        artist: 'Ben Folds', album: 'Ben Folds Live', id: 4}],
+      'searchResults': [],
       'playlistName': 'New Playlist',
-      'playlistTracks': [{name: 'Stronger',
-        artist: 'Britney Spears', album: 'Oops!... I Did It Again', id: 5},
-        {name: 'So Emotional', artist: 'Whitney Houston', album: 'Whitney',
-        id: 6}, {name: 'It\'s Not Right But It\'s Okay', artist: 'Whitney Houston',
-        album: 'My Love Is Your Love', id: 7}]
+      'playlistTracks': []
     }
     this.addTrack = this.addTrack.bind(this);
     this.removeTrack = this.removeTrack.bind(this);
@@ -73,6 +63,7 @@ class App extends Component {
   }
 
   savePlaylist() {
+    Spotify.getAccessToken();
     Spotify.savePlaylist(this.state.playlistName, this.state.playlistTracks);
     this.setState({
       'playlistName': 'New Playlist',
@@ -81,8 +72,16 @@ class App extends Component {
   }
 
   search(searchTerm) {
-    this.setState({
-      'searchResults': Spotify.search(searchTerm)
+    Spotify.getAccessToken();
+    console.log('Retrieved access token.');
+    console.log('Calling Spotify.search() with ' + searchTerm);
+    Spotify.search(searchTerm).then(results => {
+      this.setState({
+        'searchResults': results
+      });
+    }).then(() => {
+      console.log('Updated searchResults');
+      console.log(this.state.searchResults);
     });
   }
 
