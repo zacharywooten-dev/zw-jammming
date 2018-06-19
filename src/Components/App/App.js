@@ -73,15 +73,10 @@ class App extends Component {
 
   search(searchTerm) {
     Spotify.getAccessToken();
-    console.log('Retrieved access token.');
-    console.log('Calling Spotify.search() with ' + searchTerm);
     Spotify.search(searchTerm).then(results => {
       this.setState({
         'searchResults': results
       });
-    }).then(() => {
-      console.log('Updated searchResults');
-      console.log(this.state.searchResults);
     });
   }
 

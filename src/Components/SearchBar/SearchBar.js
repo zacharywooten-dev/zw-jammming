@@ -13,8 +13,6 @@ class SearchBar extends Component {
   }
 
   search() {
-    console.log('Search Button clicked...');
-    console.log('Searching for term: ' + this.state.term);
     this.props.onSearch(this.state.term);
   }
 
