@@ -4,6 +4,8 @@ const clientID = '7b4180d7c2ce4d06a758d3dcfd3ec083';
 const redirectURI = 'http://localhost:3000/';
 const spotifyAuthorizeURL = 'https://accounts.spotify.com/authorize?client_id='
 const usersURL = 'https://api.spotify.com/v1/users/';
+const searchURL = 'https://api.spotify.com/v1/search?type=track&q=';
+//const spotifyTrackURL = 'spotify:track:';
 
 const Spotify = {
 
@@ -25,7 +27,7 @@ const Spotify = {
 
   search(searchTerm) {
     Spotify.getAccessToken();
-    return fetch(`https://api.spotify.com/v1/search?type=track&q=${searchTerm}`, {
+    return fetch(`${searchURL}${searchTerm}`, {
         headers:{Authorization: `Bearer ${accessToken}`}
       }).then(response => {
         try {
@@ -38,33 +40,35 @@ const Spotify = {
           console.log(error);
         }
       }).then(jsonResponse => {
-        if (jsonResponse.tracks) {
-          return jsonResponse.tracks.map(track => ({
-            id: track.id,
-            name: track.name,
-            artist: track.artists[0].name,
-            album: track.album.name,
-            uri: track.uri
+        if (jsonResponse.tracks.items) {
+          return jsonResponse.tracks.items.map(trackItem => ({
+            id: trackItem.id,
+            name: trackItem.name,
+            artist: trackItem.artists[0].name,
+            album: trackItem.album.name,
+            uri: trackItem.uri
           }));
+        } else {
+          return [];
         }
+      }).then(searchQueryResults => {
+        return searchQueryResults;
       });
   },
 
-  savePlaylist(playlistName, trackURIs) {
+  savePlaylist(playlistName, tracks) {
     Spotify.getAccessToken();
-    if (!playlistName || !trackURIs) {
+    if (!playlistName || !tracks) {
       return;
     }
     const headers = { Authorization: `Bearer ${accessToken}` };
-
-    let userID = fetch('https://api.spotify.com/v1/me', {
+    let userID, playlistID;
+    fetch('https://api.spotify.com/v1/me', {
       headers: headers
     }).then(response => {
       try {
         if (response.ok) {
-          console.log(response);
           const jsonResponse = response.json();
-          console.log(jsonResponse);
           return jsonResponse;
         }
         throw new Error('Request failed getting userID!');
@@ -72,39 +76,47 @@ const Spotify = {
         console.log(error);
       }
     }).then(jsonResponse => {
-      return jsonResponse.id;
-    });
-
-    console.log(userID);
-
-    let playlistID = fetch(`${usersURL}${userID}/playlists`, {
-      headers: headers
-    }).then(response => {
-      try {
-        if (response.ok) {
-          const jsonResponse = response.json();
-          return jsonResponse;
-        }
-        throw new Error('Request failed posting new playlistID!');
-      } catch (error) {
-        console.log(error);
-    }}).then(jsonResponse => jsonResponse[0].id);
-
-    fetch(`${usersURL}${userID}/playlists/${playlistID}/tracks`, {
-        headers: headers
-    }).then(response => {
-      try {
-        if (response.ok) {
-          const jsonResponse = response.json();
-          return jsonResponse;
-        }
-        throw new Error('Request failed posting tracks to new playlist!');
-      } catch (error) {
-        console.log(error);
-    }}).then(jsonResponse => {
-      jsonResponse.uris = trackURIs;
-    });
-  }
-};
+      userID = jsonResponse.id;
+    }).then(() => {
+      fetch(`${usersURL}${userID}/playlists`, {
+        headers: headers,
+        method: 'POST',
+        body: JSON.stringify({name: playlistName})
+      }).then(response => {
+        try {
+          if (response.ok) {
+            const jsonResponse = response.json();
+            return jsonResponse;
+          }
+          throw new Error('Request failed posting new playlistID!');
+        } catch (error) {
+          console.log(error);
+        }}).then(jsonResponse => {
+          playlistID = jsonResponse.id;
+        }).then(() => {
+          return tracks.map(track => {
+            return track.id;
+          }).map(trackID => {
+            return `spotify:track:${trackID}`;
+          });
+        }).then(trackURIs => {
+          fetch(`${usersURL}${userID}/playlists/${playlistID}/tracks`, {
+            headers: headers,
+            method: 'POST',
+            body: {'uris': trackURIs}
+          }).then(response => {
+            try {
+              if (response.ok) {
+                const jsonResponse = response.json();
+                return jsonResponse;
+              }
+              throw new Error('Request failed posting tracks to new playlist!');
+            } catch (error) {
+              console.log(error);
+            }});
+          });
+        });
+      }
+    };
 
 export default Spotify;
